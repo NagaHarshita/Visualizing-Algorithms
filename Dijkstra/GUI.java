@@ -4,13 +4,14 @@ import java.awt.Color;
 import java.awt.MouseInfo;
 import java.awt.EventQueue;
 import java.awt.Frame;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.Point;
 import java.awt.Dimension;
-import java.util.PriorityQueue;
 import java.util.*;
 import javax.swing.*;
 import javafx.scene.layout.Priority;
@@ -43,6 +44,14 @@ class Nodes{
     boolean isWall;
 
     /**Constructor that initializes variables */
+
+    Nodes(){
+        distance = Integer.MAX_VALUE;
+        isVisited = false;
+        inHeap= false;
+        isWall = false;
+    }   
+
     Nodes(int row,int col,int x,int y,int size){
         this.x = x;
         this.y = y;
@@ -140,12 +149,15 @@ class Nodes{
 
     /**Implenting dijkstra using min-heap */
     static List<Nodes> implementDijkstra(Nodes[][] grid,Nodes source,Nodes dest){
+
         PriorityQueue<Nodes> heap = new PriorityQueue<>((a,b)->a.distance-b.distance);
         Nodes head = checkInGrid(grid, source);
         if(head==null){
             System.out.println("No source found");
             return null;
         }
+
+        List<Nodes> visitedInOrder = new ArrayList<>();
 
         /**Initialize distance to source from source as 0 and its parent as itself*/
         head.distance=0;
@@ -159,19 +171,20 @@ class Nodes{
         while(!heap.isEmpty()){
             Nodes temp = heap.poll();
             temp.isVisited = true;
+            visitedInOrder.add(temp);
 
             if(dest.row==temp.row && dest.col==temp.col){
-                return printAllVisited(temp);
+                return printAllVisited(dest);
             }
-
+            
             addNeighbours(temp, heap, grid);
         }
         
-        return null;
+        return visitedInOrder;
     }
 }
 
-public class GUI  {
+public class GUI {
     int mx;
     int my;
     Nodes[][] grid;
@@ -182,109 +195,120 @@ public class GUI  {
         GUI paintGUI = new GUI();
     }
 
-    
+    public void runNow() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
+            ex.printStackTrace();
+        }
+        
+        JFrame frame = new JFrame("Testing");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        TestPane board = new TestPane();
+        frame.setContentPane(board);
+
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
     public GUI() {
         mx = -100;
         my = -100;
-        
-
-        EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
-                    ex.printStackTrace();
-                }
-                JFrame frame = new JFrame("Testing");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                TestPane board = new TestPane();
-                frame.setContentPane(board);;
-                frame.pack();
-                frame.setLocationRelativeTo(null);
-                frame.setVisible(true);
-                
-                Move move = new Move();
-                frame.addMouseMotionListener(move);
-
-                Click click = new Click();
-                frame.addMouseListener(click);
+        grid = new Nodes[20][20];
+        for(int i=0;i<20;i++){
+            for(int j=0;j<20;j++){
+                grid[i][j] = new Nodes();
             }
-        });
+        }
+        this.runNow();
     }
 
-    public class Move implements MouseMotionListener{
-        @Override
-        public void mouseMoved(MouseEvent e){
 
-        }
-        public void mouseDragged(MouseEvent e){
-
-        }
-    }
-
-    public class Click implements MouseListener{
-        @Override
-        public void mousePressed(MouseEvent e){
-
-        }
-        
-        public void mouseClicked(MouseEvent e){
-            System.out.print(e.getX());
-            mx = e.getX();
-            my = e.getY();
-
-            int row = (my-20)/ rowCount;
-            int col = (mx-20) / colCount;
-            grid[row][col].isWall = true;
-
-            // repaint();
-        }
-        public void mouseReleased(MouseEvent e){
-            
-        }
-        public void mouseExited(MouseEvent e){
-            
-        }
-        public void mouseEntered(MouseEvent e){
-
-        }
-    }
     
-    public class TestPane extends JPanel {
-       
+    public class TestPane extends JPanel implements ActionListener{
+        List<Nodes> res;
+        Nodes source;
+        Nodes dest;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // String command = e.getActionCommand();
+            res = Nodes.implementDijkstra(grid, source, dest);
+            this.repaint();
+            
+        }
 
         public TestPane() {
+            res = new ArrayList<>();
+            source = grid[0][0];
+            dest = grid[5][9];
+
+            JButton button = new JButton("Dijkstra");
+            button.addActionListener(this);
+            this.add(button);
+
+            MouseMotionListener drag =new MouseMotionListener(){
             
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    
+                }
+            
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    mx = e.getX();
+                    my = e.getY();
+                    
+                    int row = (my-20)/ rowCount ;
+                    int col = (mx-20) / colCount;
+                    System.out.print(row + "  "+col);
+                    grid[row][col].isWall = true;
+                    TestPane.this.repaint();
+                }
+            };
+            MouseListener move = new MouseListener(){
+            
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    
+                }
+            
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    
+                }
+            
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    
+                }
+            
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    
+                }
+            
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    mx = e.getX();
+                    my = e.getY();
+                    
+                    int row = (my-20)/ rowCount ;
+                    int col = (mx-20) / colCount;
+                    grid[row][col].isWall = true;
+                    TestPane.this.repaint();
+
+                }
+            };
+            this.addMouseListener(move);
+            this.addMouseMotionListener(drag);
         }
-        // public void mousePressed(MouseEvent e){
-
-        // }
-        // public void mouseReleased(MouseEvent e){
-            
-        // }
-        // public void mouseExited(MouseEvent e){
-            
-        // }
-        // public void mouseEntered(MouseEvent e){
-
-        // }
-
-        // public void mouseClicked(MouseEvent e){
-        //     System.out.print(e.getX());
-        //     mx = e.getX();
-        //     my = e.getY();
-
-        //     int row = (my-20)/ rowCount;
-        //     int col = (mx-20) / colCount;
-        //     grid[row][col].isWall = true;
-
-        //     repaint();
-        // }
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(400, 400);
+            return new Dimension(600, 600);
         }
         
 
@@ -308,37 +332,33 @@ public class GUI  {
                 rowCount= 20;
                 colCount = (getWidth() - 20)/size;
             }
-
-            /**Creating nodes */
-            grid = new Nodes[rowCount][colCount];
-
+           
             int y = 10;
             for (int horz = 0; horz < rowCount; horz++) {
                 
                 int x = 10;
                 for (int vert = 0; vert < colCount; vert++) {
                     
-                    grid[horz][vert] = new Nodes(horz,vert,x,y,size);
-                    // g.setColor(Color.white);
-                    // System.out.println(mx);
-                    if(grid[horz][vert].isWall == true){
-                        g.setColor(Color.RED);
-                    }
+                    grid[horz][vert].x = x;
+                    grid[horz][vert].y = y;
+                    grid[horz][vert].row = horz;
+                    grid[horz][vert].col = vert;
+                    grid[horz][vert].size = size;
                     g.drawRect(x, y, size, size);
+                    
+                    if(grid[horz][vert].isWall == true){
+                        
+                        g.setColor(Color.black);
+                        g.fillRect(x, y, size, size);
+                    }
                     x += size;
                 }
                 y += size;
             }
-            
-            System.out.println("*"+mx);
-            /**setting source and dest*/
-            Nodes source,dest;
-            source = grid[0][0];
-            dest = grid[rowCount-1][colCount-1];
 
-            List<Nodes> res = Nodes.implementDijkstra(grid, source, dest);
+            /**setting source and dest*/
             if(res==null){
-                return ;
+                return;
             }
 
             /**Filling path color with blue*/
